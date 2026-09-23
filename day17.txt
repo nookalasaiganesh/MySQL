@@ -1,0 +1,579 @@
+Transaction
+--> The process of combining all related operations into a single unit and executing then according to the rule "Either all operators should succeed or none should be succeed" 
+--> A transaction is considered as a single unit of work and follows the principle "Either all or none"
+
+Example: FUNDS TRANSFER
+consider a money transfer process between two accounts:
+Debit amount from the sender's account
+credit amount into the receiver's account
+Both operations should be executed as a single transaction
+If the amount is debited from the sender's account successfully, but crediting the receiver's account fails, it may lead to data inconsistency problems
+
+Types of transaction:
+1.Local transaction
+2.Global transaction
+
+1.Local Transaction
+--> In local transactions all operations of a transaction are executed on the same database
+Example:
+Funds transfer from one account to another account where both accounts belong to the same bank
+
+2.Global Transaction
+-->In global transactions all operations of a transaction are executed on the different database
+Example:
+Funds transfer from one account to another account where both accounts belong to the different bank
+
+ACID properties:
+A-atomicity
+--> ALL or NOTHING
+C-consistency
+--> The database remains in a valid state 
+I-isolation
+--> Transactions do not interface with each other
+D-durability
+--> committed changes are permanent
+
+TCL-Transaction Control Language 
+1.COMMIT
+--> It is used to permanently save all changes made during the current transaction into the database
+--> Once committed:
+   1. Changes become permanent
+   2. Other users can see the changes
+   3. You cannot undo the changes using rollback 
+2.ROLLBACK
+--> It is used to undo all changes made in the current transaction before a commit 
+--> If something goes wrong rollback restores the database to its previous state
+3.SAVEPOINT
+
+mysql> CREATE TABLE STUDENTS(
+    -> STD_ID INT PRIMARY KEY,
+    -> STD_NAME VARCHAR(50),
+    -> MARKS INT);
+Query OK, 0 rows affected (0.30 sec)
+
+mysql> START TRANSACTION;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> INSERT INTO STUDENTS VALUES(111,'MALLI',97),(222,'MAHI',100);
+Query OK, 2 rows affected (0.06 sec)
+Records: 2  Duplicates: 0  Warnings: 0
+
+mysql> COMMIT;
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> SELECT*FROM STUDENTS;
++--------+----------+-------+
+| STD_ID | STD_NAME | MARKS |
++--------+----------+-------+
+|    111 | MALLI    |    97 |
+|    222 | MAHI     |   100 |
++--------+----------+-------+
+2 rows in set (0.00 sec)
+
+mysql> START TRANSACTION;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> UPDATE STUDENTS SET MARKS=60 WHERE STD_ID=111;
+Query OK, 1 row affected (0.01 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> SELECT*FROM STUDENTS;
++--------+----------+-------+
+| STD_ID | STD_NAME | MARKS |
++--------+----------+-------+
+|    111 | MALLI    |    60 |
+|    222 | MAHI     |   100 |
++--------+----------+-------+
+2 rows in set (0.00 sec)
+
+mysql> ROLLBACK;
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> SELECT*FROM STUDENTS;
++--------+----------+-------+
+| STD_ID | STD_NAME | MARKS |
++--------+----------+-------+
+|    111 | MALLI    |    97 |
+|    222 | MAHI     |   100 |
++--------+----------+-------+
+2 rows in set (0.00 sec)
+
+mysql> START TRANSACTION;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> DELETE FROM STUDENTS WHERE STD_ID=111;
+Query OK, 1 row affected (0.01 sec)
+
+mysql> COMMIT;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> ROLLBACK;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> SELECT*FROM STUDENTS;
++--------+----------+-------+
+| STD_ID | STD_NAME | MARKS |
++--------+----------+-------+
+|    222 | MAHI     |   100 |
++--------+----------+-------+
+1 row in set (0.00 sec)
+
+mysql> START TRANSACTION;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> INSERT INTO STUDENTS VALUES(333,'SUNNY',60),(444,'BUNNY',86);
+Query OK, 2 rows affected (0.01 sec)
+Records: 2  Duplicates: 0  Warnings: 0
+
+mysql> SELECT*FROM STUDENTS;
++--------+----------+-------+
+| STD_ID | STD_NAME | MARKS |
++--------+----------+-------+
+|    222 | MAHI     |   100 |
+|    333 | SUNNY    |    60 |
+|    444 | BUNNY    |    86 |
++--------+----------+-------+
+3 rows in set (0.00 sec)
+
+mysql> UPDATE STUDENTS SET STD_NAME='MANI' WHERE STD_ID=222;
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> SELECT*FROM STUDENTS;
++--------+----------+-------+
+| STD_ID | STD_NAME | MARKS |
++--------+----------+-------+
+|    222 | MANI     |   100 |
+|    333 | SUNNY    |    60 |
+|    444 | BUNNY    |    86 |
++--------+----------+-------+
+3 rows in set (0.00 sec)
+
+mysql> DELETE FROM STUDENTS WHERE STD_ID=333;
+Query OK, 1 row affected (0.00 sec)
+
+mysql> SELECT*FROM STUDENTS;
++--------+----------+-------+
+| STD_ID | STD_NAME | MARKS |
++--------+----------+-------+
+|    222 | MANI     |   100 |
+|    444 | BUNNY    |    86 |
++--------+----------+-------+
+2 rows in set (0.00 sec)
+
+mysql> START TRANSACTION;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> INSERT INTO STUDENTS VALUES(333,'SUNNY',60),(444,'BUNNY',86);
+Query OK, 2 rows affected (0.00 sec)
+Records: 2  Duplicates: 0  Warnings: 0
+
+mysql> SELECT*FROM STUDENTS;
++--------+----------+-------+
+| STD_ID | STD_NAME | MARKS |
++--------+----------+-------+
+|    222 | MAHI     |   100 |
+|    333 | SUNNY    |    60 |
+|    444 | BUNNY    |    86 |
++--------+----------+-------+
+3 rows in set (0.00 sec)
+
+mysql> UPDATE STUDENTS SET STD_NAME='MANI' WHERE STD_ID=222;
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> SELECT*FROM STUDENTS;
++--------+----------+-------+
+| STD_ID | STD_NAME | MARKS |
++--------+----------+-------+
+|    222 | MANI     |   100 |
+|    333 | SUNNY    |    60 |
+|    444 | BUNNY    |    86 |
++--------+----------+-------+
+3 rows in set (0.00 sec)
+
+mysql> DELETE FROM STUDENTS WHERE STD_ID=333;
+Query OK, 1 row affected (0.00 sec)
+
+mysql> SELECT*FROM STUDENTS;
++--------+----------+-------+
+| STD_ID | STD_NAME | MARKS |
++--------+----------+-------+
+|    222 | MANI     |   100 |
+|    444 | BUNNY    |    86 |
++--------+----------+-------+
+2 rows in set (0.00 sec)
+
+mysql> ROLLBACK;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> SELECT*FROM STUDENTS;
++--------+----------+-------+
+| STD_ID | STD_NAME | MARKS |
++--------+----------+-------+
+|    222 | MAHI     |   100 |
++--------+----------+-------+
+1 row in set (0.00 sec)
+
+mysql> START TRANSACTION;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> INSERT INTO STUDENTS VALUES(333,'SUNNY',60),(444,'BUNNY',86);
+Query OK, 2 rows affected (0.00 sec)
+Records: 2  Duplicates: 0  Warnings: 0
+
+mysql> SELECT*FROM STUDENTS;
++--------+----------+-------+
+| STD_ID | STD_NAME | MARKS |
++--------+----------+-------+
+|    222 | MAHI     |   100 |
+|    333 | SUNNY    |    60 |
+|    444 | BUNNY    |    86 |
++--------+----------+-------+
+3 rows in set (0.00 sec)
+
+mysql> UPDATE STUDENTS SET STD_NAME='MANI' WHERE STD_ID=222;
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> SELECT*FROM STUDENTS;
++--------+----------+-------+
+| STD_ID | STD_NAME | MARKS |
++--------+----------+-------+
+|    222 | MANI     |   100 |
+|    333 | SUNNY    |    60 |
+|    444 | BUNNY    |    86 |
++--------+----------+-------+
+3 rows in set (0.00 sec)
+
+mysql> SAVEPOINT SP1;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> DELETE FROM STUDENTS WHERE STD_ID=444;
+Query OK, 1 row affected (0.00 sec)
+
+mysql> SELECT*FROM STUDENTS;
++--------+----------+-------+
+| STD_ID | STD_NAME | MARKS |
++--------+----------+-------+
+|    222 | MANI     |   100 |
+|    333 | SUNNY    |    60 |
++--------+----------+-------+
+2 rows in set (0.00 sec)
+
+mysql> ROLLBACK TO SP1;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> SELECT*FROM STUDENTS;
++--------+----------+-------+
+| STD_ID | STD_NAME | MARKS |
++--------+----------+-------+
+|    222 | MANI     |   100 |
+|    333 | SUNNY    |    60 |
+|    444 | BUNNY    |    86 |
++--------+----------+-------+
+3 rows in set (0.00 sec)
+
+Introduction to Stored procedures
+--> A stored procedure is a named, precompiled collection of one or more SQL statements that is stored inside the database and can be executed called whenever required. Instead of sending long block of SQL from an application every time, the application simply calls the procedure by name
+
+use of stored procedures:
+1.performance
+2.reusability
+3.security
+4.reduced network traffic
+5.maintainability
+6.consistency
+
+Advantages:
+1.Faster execution after completion
+2.Reduced duplicate SQL
+3.Supports transaction, loops, conditions, variables, etc.,
+4.Easy maintenance
+
+Disadvantages:
+1.Debugging can be difficult
+2.Vendor specific syntax
+3.Complex procedures may become hard to maintain
+
+Syntax:
+DELIMITER //
+CREATE PROCEDURE procedure_name()
+BEGIN
+ --- sql statements
+END //
+DELIMITER
+
+IN parameter
+--> An IN parameter is used to pass a value into a stored procedure 
+--> The procedure can use the value, but changes made to the parameter inside the procedure are not returned to the caller
+
+Syntax:
+CREATE PROCEDURE procedure_name(IN parameter_name datatype)
+BEGIN
+    sql statements
+END;
+DELIMITER;
+
+
+mysql> CREATE TABLE employees (    emp_id INT PRIMARY KEY,    emp_name VARCHAR(50),    department VARCHAR(50),    salary DECIMAL(10,2),    experience INT,    city VARCHAR(50),    age INT);
+
+mysql> INSERT INTO employees VALUES(101, 'Ravi', 'IT', 45000, 2, 'Hyderabad', 24),(102, 'Kiran', 'HR', 40000, 3, 'Vijayawada', 27),(103, 'Suresh', 'IT', 55000, 5, 'Hyderabad', 30),(104, 'Anil', 'Sales', 35000, 1, 'Chennai', 23),(105, 'Priya', 'Finance', 60000, 6, 'Bangalore', 32),(106, 'Sneha', 'IT', 50000, 4, 'Vizag', 28),(107, 'Rahul', 'HR', 42000, 2, 'Hyderabad', 25),(108, 'Arjun', 'Sales', 38000, 3, 'Chennai', 26),(109, 'Divya', 'Finance', 65000, 7, 'Bangalore', 34),(110, 'Manoj', 'IT', 70000, 8, 'Hyderabad', 35);
+Query OK, 10 rows affected (0.17 sec)
+Records: 10  Duplicates: 0  Warnings: 0
+
+mysql> SELECT*FROM EMPLOYEES;
++--------+----------+------------+----------+------------+------------+------+
+| emp_id | emp_name | department | salary   | experience | city       | age  |
++--------+----------+------------+----------+------------+------------+------+
+|    101 | Ravi     | IT         | 45000.00 |          2 | Hyderabad  |   24 |
+|    102 | Kiran    | HR         | 40000.00 |          3 | Vijayawada |   27 |
+|    103 | Suresh   | IT         | 55000.00 |          5 | Hyderabad  |   30 |
+|    104 | Anil     | Sales      | 35000.00 |          1 | Chennai    |   23 |
+|    105 | Priya    | Finance    | 60000.00 |          6 | Bangalore  |   32 |
+|    106 | Sneha    | IT         | 50000.00 |          4 | Vizag      |   28 |
+|    107 | Rahul    | HR         | 42000.00 |          2 | Hyderabad  |   25 |
+|    108 | Arjun    | Sales      | 38000.00 |          3 | Chennai    |   26 |
+|    109 | Divya    | Finance    | 65000.00 |          7 | Bangalore  |   34 |
+|    110 | Manoj    | IT         | 70000.00 |          8 | Hyderabad  |   35 |
++--------+----------+------------+----------+------------+------------+------+
+10 rows in set (0.02 sec)
+
+mysql> DELIMITER //
+mysql> CREATE PROCEDURE getEmployeeById(IN eid INT)
+    ->  BEGIN
+    -> SELECT*FROM EMPLOYEES WHERE EMP_ID=EID;
+    ->  END //
+Query OK, 0 rows affected (0.06 sec)
+
+mysql> DELIMITER ;
+mysql> CALL getEmployeeById(101);
++--------+----------+------------+----------+------------+-----------+------+
+| emp_id | emp_name | department | salary   | experience | city      | age  |
++--------+----------+------------+----------+------------+-----------+------+
+|    101 | Ravi     | IT         | 45000.00 |          2 | Hyderabad |   24 |
++--------+----------+------------+----------+------------+-----------+------+
+1 row in set (0.05 sec)
+
+Query OK, 0 rows affected (0.06 sec)
+
+mysql> CALL getEmployeeById(110);
++--------+----------+------------+----------+------------+-----------+------+
+| emp_id | emp_name | department | salary   | experience | city      | age  |
++--------+----------+------------+----------+------------+-----------+------+
+|    110 | Manoj    | IT         | 70000.00 |          8 | Hyderabad |   35 |
++--------+----------+------------+----------+------------+-----------+------+
+1 row in set (0.00 sec)
+
+Query OK, 0 rows affected (0.02 sec)
+
+mysql> DELIMITER //
+mysql> CREATE PROCEDURE getEmployeeBysalary(IN eno INT)
+    -> BEGIN
+    -> SELECT SALARY FROM EMPLOYEES WHERE EMP_ID=eno;
+    -> END //
+Query OK, 0 rows affected (0.10 sec)
+
+mysql> DELIMITER ;
+mysql> CALL getEmployeeBySALARY(105);
++----------+
+| SALARY   |
++----------+
+| 60000.00 |
++----------+
+1 row in set (0.01 sec)
+
+mysql> SHOW PROCEDURE STATUS
+    -> WHERE Db = DATABASE();
++-----------+---------------------+-----------+----------------+---------------------+---------------------+---------------+---------+----------------------+----------------------+--------------------+
+| Db        | Name                | Type      | Definer        | Modified            | Created             | Security_type | Comment | character_set_client | collation_connection | Database Collation |
++-----------+---------------------+-----------+----------------+---------------------+---------------------+---------------+---------+----------------------+----------------------+--------------------+
+| companydb | getEmployeeById     | PROCEDURE | root@localhost | 2026-09-23 14:43:11 | 2026-09-23 14:43:11 | DEFINER       |         | cp850                | cp850_general_ci     | utf8mb4_0900_ai_ci |
+| companydb | getEmployeeBysalary | PROCEDURE | root@localhost | 2026-09-23 15:00:58 | 2026-09-23 15:00:58 | DEFINER       |         | cp850                | cp850_general_ci     | utf8mb4_0900_ai_ci |
++-----------+---------------------+-----------+----------------+---------------------+---------------------+---------------+---------+----------------------+----------------------+--------------------+
+2 rows in set (0.23 sec)
+
+
+mysql> DELIMITER //
+mysql> CREATE PROCEDURE getEmployeeBydepartment(IN dept varchar(20))
+    -> BEGIN
+    -> SELECT*FROM EMPLOYEES WHERE DEPARTMENT=DEPT;
+    -> END //
+Query OK, 0 rows affected (0.03 sec)
+
+mysql> DELIMITER ;
+mysql> CALL getEmployeeBydepartment('it');
++--------+----------+------------+----------+------------+-----------+------+
+| emp_id | emp_name | department | salary   | experience | city      | age  |
++--------+----------+------------+----------+------------+-----------+------+
+|    101 | Ravi     | IT         | 45000.00 |          2 | Hyderabad |   24 |
+|    103 | Suresh   | IT         | 55000.00 |          5 | Hyderabad |   30 |
+|    106 | Sneha    | IT         | 50000.00 |          4 | Vizag     |   28 |
+|    110 | Manoj    | IT         | 70000.00 |          8 | Hyderabad |   35 |
++--------+----------+------------+----------+------------+-----------+------+
+4 rows in set (0.01 sec)
+
+Query OK, 0 rows affected (0.03 sec)
+
+mysql> DELIMITER //
+mysql> CREATE PROCEDURE salaryrange(IN minsal decimal(10,2),IN maxsal decimal(10,2))
+    -> BEGIN
+    -> select*from employees where salary between minsal and maxsal;
+    -> END //
+Query OK, 0 rows affected (0.03 sec)
+
+mysql> DELIMITER ;
+mysql> call salaryrange(40000,80000);
++--------+----------+------------+----------+------------+------------+------+
+| emp_id | emp_name | department | salary   | experience | city       | age  |
++--------+----------+------------+----------+------------+------------+------+
+|    101 | Ravi     | IT         | 45000.00 |          2 | Hyderabad  |   24 |
+|    102 | Kiran    | HR         | 40000.00 |          3 | Vijayawada |   27 |
+|    103 | Suresh   | IT         | 55000.00 |          5 | Hyderabad  |   30 |
+|    105 | Priya    | Finance    | 60000.00 |          6 | Bangalore  |   32 |
+|    106 | Sneha    | IT         | 50000.00 |          4 | Vizag      |   28 |
+|    107 | Rahul    | HR         | 42000.00 |          2 | Hyderabad  |   25 |
+|    109 | Divya    | Finance    | 65000.00 |          7 | Bangalore  |   34 |
+|    110 | Manoj    | IT         | 70000.00 |          8 | Hyderabad  |   35 |
++--------+----------+------------+----------+------------+------------+------+
+8 rows in set (0.05 sec)
+
+Query OK, 0 rows affected (0.06 sec)
+
+mysql> DELIMITER //
+mysql> CREATE PROCEDURE deptexp(IN dep varchar(20),IN exp int)
+    -> BEGIN
+    -> select*from employees where department=dep and experience >= exp;
+    -> END //
+Query OK, 0 rows affected (0.02 sec)
+
+mysql> DELIMITER ;
+mysql> call deptexp('IT',5);
++--------+----------+------------+----------+------------+-----------+------+
+| emp_id | emp_name | department | salary   | experience | city      | age  |
++--------+----------+------------+----------+------------+-----------+------+
+|    103 | Suresh   | IT         | 55000.00 |          5 | Hyderabad |   30 |
+|    110 | Manoj    | IT         | 70000.00 |          8 | Hyderabad |   35 |
++--------+----------+------------+----------+------------+-----------+------+
+2 rows in set (0.01 sec)
+
+Query OK, 0 rows affected (0.03 sec)
+
+mysql> DELIMITER //
+mysql> create procedure total_employees(OUT total INT)
+    -> BEGIN
+    ->  select count(*) into total from employees;
+    -> END //
+Query OK, 0 rows affected (0.04 sec)
+
+mysql> DELIMITER ;
+mysql> CALL total_employees(@total);
+Query OK, 1 row affected (0.06 sec)
+
+mysql> select @total;
++--------+
+| @total |
++--------+
+|     10 |
++--------+
+1 row in set (0.00 sec)
+
+mysql> DELIMITER //
+mysql> create procedure maximumsalary(OUT maxsal decimal(10,2))
+    -> BEGIN
+    -> select max(salary) into maxsal from employees;
+    -> END //
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> DELIMITER ;
+mysql> set @max=0;
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> call maximumsalary(@max);
+Query OK, 1 row affected (0.01 sec)
+
+mysql> select @max;
++----------+
+| @max     |
++----------+
+| 70000.00 |
++----------+
+1 row in set (0.00 sec)
+
+mysql> DELIMITER //
+mysql> create procedure itemployeescount(OUT cnt INT)
+    -> BEGIN
+    -> select count(*) INTO cnt from employees where department='IT';
+    -> END //
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> DELIMITER ;
+mysql> SET @COUNT=0;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> CALL ITEMPLOYEESCOUNT(@COUNT);
+Query OK, 1 row affected (0.01 sec)
+
+mysql> SELECT @COUNT;
++--------+
+| @COUNT |
++--------+
+|      4 |
++--------+
+1 row in set (0.00 sec)
+
+mysql> DELIMITER //
+mysql> CREATE PROCEDURE INCREASE_SALARY( IN EID INT,INOUT SALARY_AMOUNT DECIMAL(10,2))
+    -> BEGIN
+    -> SELECT SALARY+SALARY_AMOUNT INTO SALARY_AMOUNT FROM EMPLOYEES WHERE EMP_ID=EID;
+    -> END //
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> DELIMITER ;
+mysql> SET @AMOUNT=50000;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> CALL INCREASE_SALARY(101,@AMOUNT);
+Query OK, 1 row affected (0.01 sec)
+
+mysql> SELECT @AMOUNT;
++----------+
+| @AMOUNT  |
++----------+
+| 95000.00 |
++----------+
+1 row in set (0.00 sec)
+
+mysql> DELIMITER //
+mysql> CREATE PROCEDURE SALARY_INCREMENT(IN EID INT,INOUT SALARY DECIMAL(10,2))
+    -> BEGIN
+    -> SELECT SALARY+(SALARY*10/100) INTO SALARY FROM EMPLOYEES WHERE EMP_ID=EID;
+    -> END //
+Query OK, 0 rows affected (0.03 sec)
+
+mysql> DELIMITER ;
+mysql> SET @SALARY=0;
+Query OK, 0 rows affected (0.00 sec)
+
+mysql> CALL SALARY_INCREMENT(101,@SALARY);
+Query OK, 1 row affected (0.01 sec)
+
+mysql> SELECT @SALARY;
++---------+
+| @SALARY |
++---------+
+|    0.00 |
++---------+
+1 row in set (0.00 sec)
+
+
+
+
+
+
+
+
+
+
+
+
