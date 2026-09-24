@@ -1,0 +1,565 @@
+
+INTRODUCTION TO TRIGGERES:
+---------------------------
+A Trigger is a special type of stored program that automatically executes(fires) in 
+response to the specific event. INSERT,UPDATE,DELETE occurring on a specified table.
+Unlike a stored procedure. A trigger never called directly.
+
+General Syntax:
+DELIMITER //
+CREATE TRIGGER trigger_name
+{BEFORE|AFTER}{INSERT|UPDATE|DELETE}
+ON table-name
+FOR EACH ROW
+begin
+    --- trigger logic
+    --- use new column name for inserted/update values.
+    --- use OLD>column_name for delete/previous values.
+END //
+DELIMITER ;
+
+
+
+mysql> use da6;
+Database changed
+mysql> use companydb;
+Database changed
+mysql> select*from employees;
++--------+----------+------------+----------+------------+------------+------+
+| emp_id | emp_name | department | salary   | experience | city       | age  |
++--------+----------+------------+----------+------------+------------+------+
+|    101 | Ravi     | IT         | 45000.00 |          2 | Hyderabad  |   24 |
+|    102 | Kiran    | HR         | 40000.00 |          3 | Vijayawada |   27 |
+|    103 | Suresh   | IT         | 55000.00 |          5 | Hyderabad  |   30 |
+|    104 | Anil     | Sales      | 35000.00 |          1 | Chennai    |   23 |
+|    105 | Priya    | Finance    | 60000.00 |          6 | Bangalore  |   32 |
+|    106 | Sneha    | IT         | 50000.00 |          4 | Vizag      |   28 |
+|    107 | Rahul    | HR         | 42000.00 |          2 | Hyderabad  |   25 |
+|    108 | Arjun    | Sales      | 38000.00 |          3 | Chennai    |   26 |
+|    109 | Divya    | Finance    | 65000.00 |          7 | Bangalore  |   34 |
+|    110 | Manoj    | IT         | 70000.00 |          8 | Hyderabad  |   35 |
++--------+----------+------------+----------+------------+------------+------+
+10 rows in set (0.01 sec)
+
+mysql> drop table employees;
+Query OK, 0 rows affected (0.08 sec)
+
+mysql> CREATE TABLE Employees (
+    ->     emp_id INT PRIMARY KEY,
+    ->     emp_name VARCHAR(50),
+    ->     department VARCHAR(30),
+    ->     salary DECIMAL(10,2),
+    ->     experience INT,
+    ->     city VARCHAR(30)
+    -> );
+Query OK, 0 rows affected (0.04 sec)
+
+mysql> INSERT INTO Employees VALUES
+    -> (101,'Rahul','IT',65000,5,'Hyderabad'),
+    -> (102,'Priya','HR',45000,3,'Chennai'),
+    -> (103,'Amit','Finance',70000,6,'Bangalore'),
+    -> (104,'Sneha','IT',80000,8,'Hyderabad'),
+    -> (105,'Kiran','Sales',40000,2,'Pune');
+Query OK, 5 rows affected (0.01 sec)
+Records: 5  Duplicates: 0  Warnings: 0
+
+mysql> CREATE TABLE Employee_Audit(
+    ->     audit_id INT AUTO_INCREMENT PRIMARY KEY,
+    ->     emp_id INT,
+    ->     action_type VARCHAR(20),
+    ->     old_salary DECIMAL(10,2),
+    ->     new_salary DECIMAL(10,2),
+    ->     action_time DATETIME
+    -> );
+Query OK, 0 rows affected (0.03 sec)
+
+mysql> SELECT*FROM EMPLOYEES;
++--------+----------+------------+----------+------------+-----------+
+| emp_id | emp_name | department | salary   | experience | city      |
++--------+----------+------------+----------+------------+-----------+
+|    101 | Rahul    | IT         | 65000.00 |          5 | Hyderabad |
+|    102 | Priya    | HR         | 45000.00 |          3 | Chennai   |
+|    103 | Amit     | Finance    | 70000.00 |          6 | Bangalore |
+|    104 | Sneha    | IT         | 80000.00 |          8 | Hyderabad |
+|    105 | Kiran    | Sales      | 40000.00 |          2 | Pune      |
++--------+----------+------------+----------+------------+-----------+
+5 rows in set (0.00 sec)
+
+
+mysql> DELIMITER //
+mysql> CREATE TRIGGER TRG_BEFORE_INSERT_SALARY
+    -> BEFORE INSERT
+    -> ON EMPLOYEES
+    -> FOR EACH ROW
+    -> BEGIN
+    ->     IF NEW.SALARY<20000 THEN SIGNAL SQLSTATE'45000'
+    -> SET MESSAGE_TEXT='Salary cannot be less than 20000';
+    -> END IF;
+    -> END //
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> DELIMITER ;
+mysql> INSERT INTO EMPLOYEES VALUES(106,'SAMI','IT',25000,2,'DELHI');
+Query OK, 1 row affected (0.01 sec)
+
+mysql> DESC EMPLOYEE_AUDIT;
++-------------+---------------+------+-----+---------+----------------+
+| Field       | Type          | Null | Key | Default | Extra          |
++-------------+---------------+------+-----+---------+----------------+
+| audit_id    | int           | NO   | PRI | NULL    | auto_increment |
+| emp_id      | int           | YES  |     | NULL    |                |
+| action_type | varchar(20)   | YES  |     | NULL    |                |
+| old_salary  | decimal(10,2) | YES  |     | NULL    |                |
+| new_salary  | decimal(10,2) | YES  |     | NULL    |                |
+| action_time | datetime      | YES  |     | NULL    |                |
++-------------+---------------+------+-----+---------+----------------+
+6 rows in set (0.04 sec)
+
+mysql> DELIMITER //
+mysql> CREATE TRIGGER TRG_AFTER_INSERT
+    -> AFTER INSERT
+    -> ON EMPLOYEES
+    -> FOR EACH ROW
+    -> BEGIN
+    ->     INSERT INTO EMPLOYEE_AUDIT
+    ->      (EMP_ID,ACTION_TYPE,NEW_SALARY,ACTION_TIME)
+    ->       VALUES
+    ->      (NEW.EMP_ID,'INSERT',NEW.SALARY,NOW());
+    -> END //
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> DELIMITER ;
+mysql>
+mysql> INSERT INTO EMPLOYEES VALUES(107,'HEMI','HR',55000,4,'CHENNAI');
+Query OK, 1 row affected (0.01 sec)
+
+mysql> SELECT*FROM EMPLOYEE_AUDIT;
++----------+--------+-------------+------------+------------+---------------------+
+| audit_id | emp_id | action_type | old_salary | new_salary | action_time         |
++----------+--------+-------------+------------+------------+---------------------+
+|        1 |    107 | INSERT      |       NULL |   55000.00 | 2026-09-24 14:40:56 |
++----------+--------+-------------+------------+------------+---------------------+
+1 row in set (0.00 sec)
+
+mysql> DELIMITER ;
+mysql>
+mysql> UPDATE EMPLOYEES SET SALARY=40000 WHERE EMP_ID=101;
+Query OK, 1 row affected (0.01 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql>
+mysql>
+mysql> SELECT*FROM EMPLOYEES;
++--------+----------+------------+----------+------------+-----------+
+| emp_id | emp_name | department | salary   | experience | city      |
++--------+----------+------------+----------+------------+-----------+
+|    101 | Rahul    | IT         | 40000.00 |          5 | Hyderabad |
+|    102 | Priya    | HR         | 45000.00 |          3 | Chennai   |
+|    103 | Amit     | Finance    | 70000.00 |          6 | Bangalore |
+|    104 | Sneha    | IT         | 80000.00 |          8 | Hyderabad |
+|    105 | Kiran    | Sales      | 40000.00 |          2 | Pune      |
+|    106 | SAMI     | IT         | 25000.00 |          2 | DELHI     |
+|    107 | HEMI     | HR         | 55000.00 |          4 | CHENNAI   |
++--------+----------+------------+----------+------------+-----------+
+7 rows in set (0.00 sec)
+
+mysql> DELIMITER ;
+mysql>
+mysql> UPDATE EMPLOYEES SET SALARY=40000 WHERE EMP_ID=101;
+Query OK, 0 rows affected (0.00 sec)
+Rows matched: 1  Changed: 0  Warnings: 0
+
+mysql> DELIMITER ;
+mysql>
+mysql> UPDATE EMPLOYEES SET SALARY=50000 WHERE EMP_ID=101;
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> SELECT*FROM EMPLOYEES;
++--------+----------+------------+----------+------------+-----------+
+| emp_id | emp_name | department | salary   | experience | city      |
++--------+----------+------------+----------+------------+-----------+
+|    101 | Rahul    | IT         | 50000.00 |          5 | Hyderabad |
+|    102 | Priya    | HR         | 45000.00 |          3 | Chennai   |
+|    103 | Amit     | Finance    | 70000.00 |          6 | Bangalore |
+|    104 | Sneha    | IT         | 80000.00 |          8 | Hyderabad |
+|    105 | Kiran    | Sales      | 40000.00 |          2 | Pune      |
+|    106 | SAMI     | IT         | 25000.00 |          2 | DELHI     |
+|    107 | HEMI     | HR         | 55000.00 |          4 | CHENNAI   |
++--------+----------+------------+----------+------------+-----------+
+7 rows in set (0.00 sec)
+
+mysql> DELIMITER //
+mysql> CREATE TRIGGER TRG_AFTER_UPDATE
+    -> AFTER UPDATE
+    -> ON EMPLOYEES
+    -> FOR EACH ROW
+    -> BEGIN
+    ->     INSERT INTO EMPLOYEE_AUDIT
+    ->      (EMP_ID,ACTION_TYPE,OLD_SALARY,NEW_SALARY,ACTION_TIME)
+    ->       VALUES
+    ->      (NEW.EMP_ID,'UPDATE',OLD.SALARY,NEW.SALARY,NOW());
+    -> END //
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> DELIMITER ;
+mysql> UPDATE EMPLOYEES SET SALARY=70000 WHERE EMP_ID=101;
+Query OK, 1 row affected (0.01 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> SELECT*FROM EMPLOYEE_AUDIT;
++----------+--------+-------------+------------+------------+---------------------+
+| audit_id | emp_id | action_type | old_salary | new_salary | action_time         |
++----------+--------+-------------+------------+------------+---------------------+
+|        1 |    107 | INSERT      |       NULL |   55000.00 | 2026-09-24 14:40:56 |
+|        2 |    101 | UPDATE      |   50000.00 |   70000.00 | 2026-09-24 15:00:34 |
++----------+--------+-------------+------------+------------+---------------------+
+2 rows in set (0.00 sec)
+
+mysql> DELIMITER //
+mysql> CREATE TRIGGER TRG_BEFORE_DELETE
+    -> BEFORE DELETE
+    -> ON EMPLOYEES
+    -> FOR EACH ROW
+    -> BEGIN
+    ->     IF OLD.DEPARTMENT='IT' THEN SIGNAL SQLSTATE'45000'
+    ->     SET MESSAGE_TEXT='CANNOT DELETE IT EMPLOYEE';
+    -> END IF;
+    -> END //
+Query OK, 0 rows affected (0.01 sec)
+
+
+mysql> DELIMITER ;
+mysql>
+mysql> DROP TRIGGER TRG_BEFORE_DELETE;
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> DELIMITER //
+mysql> CREATE TRIGGER TRG_BEFORE_DELETE
+    -> BEFORE DELETE
+    -> ON EMPLOYEES
+    -> FOR EACH ROW
+    -> BEGIN
+    ->     IF OLD.DEPARTMENT='IT' THEN SIGNAL SQLSTATE'45000'
+    ->     SET MESSAGE_TEXT='CANNOT DELETE IT EMPLOYEE';
+    -> END IF;
+    -> END //
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> DELIMITER ;
+mysql>
+mysql> DROP TRIGGER TRG_BEFORE_DELETE;
+Query OK, 0 rows affected (0.01 sec)
+
+mysql> DELIMITER //
+mysql> CREATE TRIGGER TRG_AFTER_DELETE
+    -> AFTER DELETE
+    -> ON EMPLOYEES
+    -> FOR EACH ROW
+    -> BEGIN
+    ->        INSERT INTO Employee_Audit
+    ->        (emp_id,action_type,old_salary,action_time)
+    ->        VALUES
+    ->        (OLD.emp_id,'DELETE',OLD.salary,NOW());
+    -> END//
+Query OK, 0 rows affected (0.01 sec)
+
+mysql>
+mysql> DELIMITER ;
+mysql>
+mysql> DELETE FROM EMPLOYEES WHERE EMP_ID=105;
+Query OK, 1 row affected (0.01 sec)
+
+mysql> SELECT*FROM EMPLOYEE_AUDIT;
++----------+--------+-------------+------------+------------+---------------------+
+| audit_id | emp_id | action_type | old_salary | new_salary | action_time         |
++----------+--------+-------------+------------+------------+---------------------+
+|        1 |    107 | INSERT      |       NULL |   55000.00 | 2026-09-24 14:40:56 |
+|        2 |    101 | UPDATE      |   50000.00 |   70000.00 | 2026-09-24 15:00:34 |
+|        3 |    105 | DELETE      |   40000.00 |       NULL | 2026-09-24 15:14:41 |
++----------+--------+-------------+------------+------------+---------------------+
+3 rows in set (0.00 sec)
+
+
+mysql> CREATE TABLE Authors (
+    ->     author_id INT AUTO_INCREMENT PRIMARY KEY,
+    ->     author_name VARCHAR(100) NOT NULL,
+    ->     bio TEXT
+    -> );
+Query OK, 0 rows affected (0.04 sec)
+
+mysql> INSERT INTO Authors (author_name, bio) VALUES
+    -> ('Chetan Bhagat', 'Indian author known for 5 Point Someone.'),
+    -> ('Arundhati Roy', 'Winner of the Man Booker Prize.'),
+    -> ('R.K. Narayan', 'Creator of Malgudi Days.'),
+    -> ('Amish Tripathi', 'Known for the Shiva Trilogy.');
+Query OK, 4 rows affected (0.01 sec)
+Records: 4  Duplicates: 0  Warnings: 0
+
+mysql> CREATE TABLE Genres (
+    ->     genre_id INT AUTO_INCREMENT PRIMARY KEY,
+    ->     genre_name VARCHAR(50) NOT NULL
+    -> );
+Query OK, 0 rows affected (0.02 sec)
+
+mysql> INSERT INTO Genres (genre_name) VALUES
+    -> ('Fiction'),
+    -> ('Mythology'),
+    -> ('History'),
+    -> ('Romance');
+Query OK, 4 rows affected (0.00 sec)
+Records: 4  Duplicates: 0  Warnings: 0
+
+mysql> CREATE TABLE Customers (
+    ->     customer_id INT AUTO_INCREMENT PRIMARY KEY,
+    ->     name VARCHAR(100),
+    ->     email VARCHAR(100) UNIQUE,
+    ->     city VARCHAR(50),
+    ->     join_date DATE
+    -> );
+Query OK, 0 rows affected (0.04 sec)
+
+mysql> INSERT INTO Customers
+    -> (name, email, city, join_date)
+    -> VALUES
+    -> ('Aarav Sharma', 'aarav@gmail.com', 'Mumbai', '2023-01-10'),
+    -> ('Diya Patel', 'diya.p@yahoo.com', 'Ahmedabad', '2023-02-15'),
+    -> ('Vihaan Reddy', 'vihaan.r@outlook.com', 'Hyderabad', '2023-03-20'),
+    -> ('Ananya Gupta', 'ananya.g@gmail.com', 'Delhi', '2023-04-05');
+Query OK, 4 rows affected (0.01 sec)
+Records: 4  Duplicates: 0  Warnings: 0
+
+mysql> CREATE TABLE Books (
+    ->     book_id INT AUTO_INCREMENT PRIMARY KEY,
+    ->     title VARCHAR(150),
+    ->     price DECIMAL(10,2),
+    ->     stock_quantity INT,
+    ->     author_id INT,
+    ->     genre_id INT,
+    ->
+    ->     FOREIGN KEY (author_id) REFERENCES Authors(author_id),
+    ->     FOREIGN KEY (genre_id) REFERENCES Genres(genre_id)
+    -> );
+Query OK, 0 rows affected (0.07 sec)
+
+mysql> INSERT INTO Books
+    -> (title, price, stock_quantity, author_id, genre_id)
+    -> VALUES
+    -> ('Five Point Someone', 250.00, 50, 1, 1),
+    -> ('2 States', 300.00, 40, 1, 4),
+    -> ('The God of Small Things', 450.00, 20, 2, 1),
+    -> ('Malgudi Days', 200.00, 100, 3, 1),
+    -> ('The Immortals of Meluha', 399.00, 60, 4, 2);
+Query OK, 5 rows affected (0.01 sec)
+Records: 5  Duplicates: 0  Warnings: 0
+
+mysql> CREATE TABLE Orders (
+    ->     order_id INT AUTO_INCREMENT PRIMARY KEY,
+    ->     order_date DATE,
+    ->     customer_id INT,
+    ->
+    ->     FOREIGN KEY (customer_id) REFERENCES Customers(customer_id)
+    -> );
+Query OK, 0 rows affected (0.04 sec)
+
+mysql> INSERT INTO Orders
+    -> (order_date, customer_id)
+    -> VALUES
+    -> ('2023-05-01', 1),
+    -> ('2023-05-03', 2),
+    -> ('2023-05-05', 1),
+    -> ('2023-06-01', 3);
+Query OK, 4 rows affected (0.01 sec)
+Records: 4  Duplicates: 0  Warnings: 0
+
+mysql> CREATE TABLE Order_Details (
+    ->     detail_id INT AUTO_INCREMENT PRIMARY KEY,
+    ->     order_id INT,
+    ->     book_id INT,
+    ->     quantity_ordered INT,
+    ->     price_at_time_of_order DECIMAL(10,2),
+    ->
+    ->     FOREIGN KEY (order_id) REFERENCES Orders(order_id),
+    ->     FOREIGN KEY (book_id) REFERENCES Books(book_id)
+    -> );
+Query OK, 0 rows affected (0.05 sec)
+
+mysql> INSERT INTO Order_Details
+    -> (order_id, book_id, quantity_ordered, price_at_time_of_order)
+    -> VALUES
+    -> (1, 1, 1, 250.00),
+    -> (1, 4, 2, 200.00),
+    -> (2, 5, 1, 399.00),
+    -> (3, 2, 1, 300.00),
+    -> (4, 3, 1, 450.00);
+Query OK, 5 rows affected (0.01 sec)
+Records: 5  Duplicates: 0  Warnings: 0
+
+mysql> SELECT * FROM Authors;
++-----------+----------------+------------------------------------------+
+| author_id | author_name    | bio                                      |
++-----------+----------------+------------------------------------------+
+|         1 | Chetan Bhagat  | Indian author known for 5 Point Someone. |
+|         2 | Arundhati Roy  | Winner of the Man Booker Prize.          |
+|         3 | R.K. Narayan   | Creator of Malgudi Days.                 |
+|         4 | Amish Tripathi | Known for the Shiva Trilogy.             |
++-----------+----------------+------------------------------------------+
+4 rows in set (0.00 sec)
+
+mysql> SELECT * FROM Genres;
++----------+------------+
+| genre_id | genre_name |
++----------+------------+
+|        1 | Fiction    |
+|        2 | Mythology  |
+|        3 | History    |
+|        4 | Romance    |
++----------+------------+
+4 rows in set (0.00 sec)
+
+mysql> SELECT * FROM Customers;
++-------------+--------------+----------------------+-----------+------------+
+| customer_id | name         | email                | city      | join_date  |
++-------------+--------------+----------------------+-----------+------------+
+|           1 | Aarav Sharma | aarav@gmail.com      | Mumbai    | 2023-01-10 |
+|           2 | Diya Patel   | diya.p@yahoo.com     | Ahmedabad | 2023-02-15 |
+|           3 | Vihaan Reddy | vihaan.r@outlook.com | Hyderabad | 2023-03-20 |
+|           4 | Ananya Gupta | ananya.g@gmail.com   | Delhi     | 2023-04-05 |
++-------------+--------------+----------------------+-----------+------------+
+4 rows in set (0.00 sec)
+
+mysql> SELECT * FROM Books;
++---------+-------------------------+--------+----------------+-----------+----------+
+| book_id | title                   | price  | stock_quantity | author_id | genre_id |
++---------+-------------------------+--------+----------------+-----------+----------+
+|       1 | Five Point Someone      | 250.00 |             50 |         1 |        1 |
+|       2 | 2 States                | 300.00 |             40 |         1 |        4 |
+|       3 | The God of Small Things | 450.00 |             20 |         2 |        1 |
+|       4 | Malgudi Days            | 200.00 |            100 |         3 |        1 |
+|       5 | The Immortals of Meluha | 399.00 |             60 |         4 |        2 |
++---------+-------------------------+--------+----------------+-----------+----------+
+5 rows in set (0.00 sec)
+
+mysql> SELECT * FROM Orders;
++----------+------------+-------------+
+| order_id | order_date | customer_id |
++----------+------------+-------------+
+|        1 | 2023-05-01 |           1 |
+|        2 | 2023-05-03 |           2 |
+|        3 | 2023-05-05 |           1 |
+|        4 | 2023-06-01 |           3 |
++----------+------------+-------------+
+4 rows in set (0.00 sec)
+
+mysql> SELECT * FROM Order_Details;
++-----------+----------+---------+------------------+------------------------+
+| detail_id | order_id | book_id | quantity_ordered | price_at_time_of_order |
++-----------+----------+---------+------------------+------------------------+
+|         1 |        1 |       1 |                1 |                 250.00 |
+|         2 |        1 |       4 |                2 |                 200.00 |
+|         3 |        2 |       5 |                1 |                 399.00 |
+|         4 |        3 |       2 |                1 |                 300.00 |
+|         5 |        4 |       3 |                1 |                 450.00 |
++-----------+----------+---------+------------------+------------------------+
+5 rows in set (0.00 sec)
+
+mysql> -- 1) LIST ALL BOOKS THAT COST LESS THAN 300 RUPEES.
+mysql> select*from books where price<300;
++---------+--------------------+--------+----------------+-----------+----------+
+| book_id | title              | price  | stock_quantity | author_id | genre_id |
++---------+--------------------+--------+----------------+-----------+----------+
+|       1 | Five Point Someone | 250.00 |             50 |         1 |        1 |
+|       4 | Malgudi Days       | 200.00 |            100 |         3 |        1 |
++---------+--------------------+--------+----------------+-----------+----------+
+2 rows in set (0.00 sec)
+
+mysql> -- 2) FIND THE email address of Vihaan Reddy.
+mysql> select name,email from customers where name='vihaan reddy';
++--------------+----------------------+
+| name         | email                |
++--------------+----------------------+
+| Vihaan Reddy | vihaan.r@outlook.com |
++--------------+----------------------+
+1 row in set (0.00 sec)
+
+mysql> -- 3) Display all books in the fiction game.
+mysql> select*from books where genre_id=1;
++---------+-------------------------+--------+----------------+-----------+----------+
+| book_id | title                   | price  | stock_quantity | author_id | genre_id |
++---------+-------------------------+--------+----------------+-----------+----------+
+|       1 | Five Point Someone      | 250.00 |             50 |         1 |        1 |
+|       3 | The God of Small Things | 450.00 |             20 |         2 |        1 |
+|       4 | Malgudi Days            | 200.00 |            100 |         3 |        1 |
++---------+-------------------------+--------+----------------+-----------+----------+
+3 rows in set (0.00 sec)
+
+mysql> -- 4) List all authors alphabetically.
+mysql> select*from authors order by author_name;
++-----------+----------------+------------------------------------------+
+| author_id | author_name    | bio                                      |
++-----------+----------------+------------------------------------------+
+|         4 | Amish Tripathi | Known for the Shiva Trilogy.             |
+|         2 | Arundhati Roy  | Winner of the Man Booker Prize.          |
+|         1 | Chetan Bhagat  | Indian author known for 5 Point Someone. |
+|         3 | R.K. Narayan   | Creator of Malgudi Days.                 |
++-----------+----------------+------------------------------------------+
+4 rows in set (0.00 sec)
+
+mysql> -- 5) Count how many customers are from Mumbai.
+mysql> select count(*) from customers where city='Mumbai';
++----------+
+| count(*) |
++----------+
+|        1 |
++----------+
+1 row in set (0.00 sec)
+
+mysql> -- 6) Show the most expensive book.
+mysql> select*from books order by price desc limit 1;
++---------+-------------------------+--------+----------------+-----------+----------+
+| book_id | title                   | price  | stock_quantity | author_id | genre_id |
++---------+-------------------------+--------+----------------+-----------+----------+
+|       3 | The God of Small Things | 450.00 |             20 |         2 |        1 |
++---------+-------------------------+--------+----------------+-----------+----------+
+1 row in set (0.00 sec)
+
+mysql> -- 1) List book titles with author name.
+mysql> select b.title,a.author_name from books b
+    -> join authors a on b.author_id=a.author_id;
++-------------------------+----------------+
+| title                   | author_name    |
++-------------------------+----------------+
+| Five Point Someone      | Chetan Bhagat  |
+| 2 States                | Chetan Bhagat  |
+| The God of Small Things | Arundhati Roy  |
+| Malgudi Days            | R.K. Narayan   |
+| The Immortals of Meluha | Amish Tripathi |
++-------------------------+----------------+
+5 rows in set (0.00 sec)
+
+mysql> select*from orders where order_date between '2023-05-01' AND '2023-05-31';
++----------+------------+-------------+
+| order_id | order_date | customer_id |
++----------+------------+-------------+
+|        1 | 2023-05-01 |           1 |
+|        2 | 2023-05-03 |           2 |
+|        3 | 2023-05-05 |           1 |
++----------+------------+-------------+
+3 rows in set (0.00 sec)
+
+mysql> select c.name from customers c
+    -> left join orders o on c.customer_id=o.customer_id where o.customer_id is null;
++--------------+
+| name         |
++--------------+
+| Ananya Gupta |
++--------------+
+1 row in set (0.00 sec)
+
+
+
+
+
+
+
+
